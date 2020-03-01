@@ -32,6 +32,7 @@ from torch.nn import CrossEntropyLoss, MSELoss, NLLLoss
 
 from .file_utils import cached_path, WEIGHTS_NAME, CONFIG_NAME
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 PRETRAINED_MODEL_ARCHIVE_MAP = {
@@ -662,7 +663,7 @@ class BertPreTrainedModel(nn.Module):
         kwargs.pop('cache_dir', None)
         from_tf = kwargs.get('from_tf', False)
         kwargs.pop('from_tf', None)
-
+        
         if pretrained_model_name_or_path in PRETRAINED_MODEL_ARCHIVE_MAP:
             archive_file = PRETRAINED_MODEL_ARCHIVE_MAP[pretrained_model_name_or_path]
             config_file = PRETRAINED_CONFIG_ARCHIVE_MAP[pretrained_model_name_or_path]
@@ -724,7 +725,7 @@ class BertPreTrainedModel(nn.Module):
             state_dict = torch.load(resolved_archive_file, map_location='cpu')
         if from_tf:
             # Directly load from a TensorFlow checkpoint
-            return load_tf_weights_in_bert(model, weights_path)
+            return load_tf_weights_in_bert(model, resolved_archive_file)
         # Load from a PyTorch state_dict
         old_keys = []
         new_keys = []
@@ -768,16 +769,7 @@ class BertPreTrainedModel(nn.Module):
             state_dict = state_dict.copy()
             if metadata is not None:
                 state_dict._metadata = metadata
-            load(model, prefix=start_prefix)
-
-        ### temporarily initialize the top-level lenear layer randomly
-        try:
-            logger.info("Randomly initialize the top level classifiers!")
-            model.classifiers.weight.data.normal_(mean=0.0, std=config.initializer_range)
-            model.classifiers.bias.data.zero_()
-        except:
-            logger.info("Failed for Randomly initialize the top level classifiers!")
-            pass
+            load(model, prefix=start_prefix)        
 
         if len(missing_keys) > 0:
             logger.info("Weights of {} not initialized from pretrained model: {}".format(
@@ -1192,7 +1184,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
             return loss
         elif self.output_attentions:
             return all_attentions, logits
-        return logits
+        return logits 
 
 
 class BertForSequenceClassification_MT(BertPreTrainedModel):
